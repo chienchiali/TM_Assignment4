@@ -161,14 +161,14 @@ for article in dataset.data:
 
 # # Text Classification with SVM
 
-# In[9]:
+# In[45]:
 
 from sklearn.datasets import load_files
 dataset = load_files('newtalks_train', encoding='utf-8')
 dataset.target_names
 
 
-# In[10]:
+# In[46]:
 
 len(dataset.data)
 #一個data是一篇文章
@@ -179,7 +179,7 @@ print (dataset.data[0])
 
 # ### Tokenizing text with scikit-learn
 
-# In[30]:
+# In[47]:
 
 from sklearn.feature_extraction.text import CountVectorizer
 count_vect = CountVectorizer()
@@ -187,19 +187,19 @@ X_train_counts = count_vect.fit_transform(dataset.data)
 X_train_counts.shape
 
 
-# In[49]:
+# In[48]:
 
 count_vect.vocabulary_.get("法國")
 
 
-# In[32]:
+# In[49]:
 
 ngram_count_vect = CountVectorizer(ngram_range=(1, 5))
 XX_train_counts = ngram_count_vect.fit_transform(dataset.data)
 XX_train_counts.shape
 
 
-# In[39]:
+# In[50]:
 
 ngram_count_vect.vocabulary_.get("稍晚 宣稱")
 
@@ -223,7 +223,7 @@ X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
 X_train_tfidf.shape
 
 
-# In[67]:
+# In[53]:
 
 #有 ngram 的 tf
 from sklearn.feature_extraction.text import TfidfTransformer
@@ -232,30 +232,22 @@ X_train_tf = tf_transformer.transform(XX_train_counts)
 X_train_tf.shape
 
 
-# In[68]:
+# In[54]:
 
 #有 ngram 的 tfidf
 tfidf_transformer = TfidfTransformer()
-X_train_tfidf = tfidf_transformer.fit_transform(XX_train_counts)
-X_train_tfidf.shape
+XX_train_tfidf = tfidf_transformer.fit_transform(XX_train_counts)
+XX_train_tfidf.shape
 
 
 # ### TfidfVectorizer
 
-# In[69]:
+# In[55]:
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 tfidf_vectorizer = TfidfVectorizer()
-X_train_tfidf = tfidf_vectorizer.fit_transform(dataset.data)
+XX_train_tfidf = tfidf_vectorizer.fit_transform(dataset.data)
 X_train_tfidf.shape
-
-
-# Split data into train data and test data
-
-# In[132]:
-
-from sklearn.model_selection import train_test_split
-x_train, x_test, y_train, y_test = train_test_split(dataset.data, dataset.target, test_size=0.25, random_state=None)
 
 
 # # Building a pipeline
@@ -264,7 +256,7 @@ x_train, x_test, y_train, y_test = train_test_split(dataset.data, dataset.target
 
 # TASK: Build a vectorizer / classifier pipeline that filters out tokens that are too rare or too frequent
 
-# In[55]:
+# In[73]:
 
 from sklearn.pipeline import Pipeline
 #SVM 
@@ -272,37 +264,38 @@ from sklearn.svm import SVC, LinearSVC, NuSVC
 from sklearn.linear_model import SGDClassifier
 
 
-# In[70]:
+# In[190]:
 
 text_clf = Pipeline([('vect', TfidfVectorizer()),
                      ('clf', LinearSVC()),
 ])
 
 
-# In[71]:
+# In[191]:
 
 text_clf.fit(dataset.data, dataset.target)
 
 
 # ## load test data
 
-# In[58]:
+# In[192]:
 
 yahoo_test = load_files('yahoonews_test_only3', encoding='utf-8')
+yahoo_test.target_names
 
 
-# In[60]:
+# In[193]:
 
 predicted = text_clf.predict(yahoo_test.data)
 
 
-# In[62]:
+# In[194]:
 
 import numpy as np
 np.mean(predicted == yahoo_test.target)
 
 
-# In[72]:
+# In[195]:
 
 from sklearn import metrics
 print(metrics.classification_report(yahoo_test.target, predicted,
@@ -311,67 +304,76 @@ print(metrics.classification_report(yahoo_test.target, predicted,
 
 # ### Parameter tuning using grid search
 
-# In[73]:
+# In[196]:
 
 from sklearn.model_selection import GridSearchCV
 parameters = {'vect__ngram_range': [(1, 1), (1, 2)],
               'vect__use_idf': (True, False),
+              #'clf__kernel':('linear', 'rbf','poly','sigmoid'),
               'clf__C': (1.0, 0.1, 1e-2, 1e-3),
 }
+ # use kernel setting with SUV() and NuSUV() classification
 
 
-# In[74]:
+# In[197]:
 
 gs_clf = GridSearchCV(text_clf, parameters, n_jobs=-1)
 
 
-# In[75]:
+# In[198]:
 
+# 把data放進每個model跑看看
 gs_clf = gs_clf.fit(dataset.data, dataset.target)
 
 
-# In[76]:
+# In[199]:
 
 dataset.target_names[gs_clf.predict(['安全'])[0]]
 
 
-# In[77]:
+# In[200]:
 
 gs_clf.best_score_
 
 
-# In[78]:
+# In[201]:
 
 for param_name in sorted(parameters.keys()):
     print("%s: %r" % (param_name, gs_clf.best_params_[param_name]))
 
 
-# In[79]:
+# In[202]:
 
 clf = gs_clf.best_estimator_
 
 
-# In[80]:
+# In[203]:
 
 predicted = clf.predict(yahoo_test.data)
 
 
-# In[81]:
+# In[204]:
 
 import numpy as np
 np.mean(predicted == yahoo_test.target)  
 
 
-# In[82]:
+# In[205]:
 
 from sklearn import metrics
 print(metrics.classification_report(yahoo_test.target, predicted,
     target_names=yahoo_test.target_names))
 
 
-# In[151]:
+# In[159]:
 
 gs_clf.cv_results_
+
+
+# In[ ]:
+
+cm = metrics.confusion_matrix(yahoo_test.data, predicted)
+print(cm)
 
 
 # In[45]:
